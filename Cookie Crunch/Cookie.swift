@@ -13,7 +13,7 @@ enum CookieType: Int, Printable {
     
     var spriteName: String {
         let spriteNames = [
-            "Crossaint",
+            "Croissant",
             "Cupcake",
             "Danish",
             "Donut",
