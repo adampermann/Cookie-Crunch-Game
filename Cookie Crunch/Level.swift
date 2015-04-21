@@ -33,12 +33,16 @@ class Level {
         }
     }
     
+    // returns a tile at a column and row
+    // if those are valid
     func tileAtColumn(column: Int, row: Int) -> Tile? {
         assert(column >= 0 && column < NumColumns)
         assert(row >= 0 && row < NumRows)
         return tiles[column, row]
     }
     
+    // returns a cookie at a column and row
+    // if those are valid
     func cookieAtColumn(column: Int, row: Int) -> Cookie? {
         assert(column >= 0 && column < NumColumns)
         assert(row >= 0 && row < NumRows)
@@ -49,6 +53,7 @@ class Level {
         return createInitialCookies()
     }
     
+    // creates the initial Set of cookies
     private func createInitialCookies() -> Set<Cookie> {
         var set = Set<Cookie>()
         
@@ -66,7 +71,22 @@ class Level {
                 }
             }
         }
-        
         return set
+    }
+    
+    // Swaps the two cookies contained in the Swap object
+    func performSwap(swap: Swap) {
+        let columnA = swap.cookieA.column
+        let rowA = swap.cookieA.row
+        let columnB = swap.cookieB.column
+        let rowB = swap.cookieB.row
+        
+        cookies[columnA, rowA] = swap.cookieB
+        swap.cookieB.column = columnA
+        swap.cookieB.row = rowA
+        
+        cookies[columnB, rowB] = swap.cookieA
+        swap.cookieA.column = columnB
+        swap.cookieA.row = rowB
     }
 }

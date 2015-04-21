@@ -8,7 +8,6 @@
 
 import UIKit
 import SpriteKit
-// import GameScene
 
 class GameViewController: UIViewController {
     var scene: GameScene!
@@ -21,6 +20,23 @@ class GameViewController: UIViewController {
     func shuffle() {
         let newCookies = self.level.shuffle()
         self.scene.addSpritesForCookies(newCookies)
+    }
+    
+    func handleSwipe(swap: Swap) {
+        view.userInteractionEnabled = false
+        
+        level.performSwap(swap)
+        
+        // trailing closure syntax for animate swipe
+        scene.animateSwap(swap) {
+            self.view.userInteractionEnabled = true
+        }
+        
+//        another way to code it would be
+        
+//        scene.animateSwap(swap, completion: {
+//            self.view.userInteractionEnabled = true
+//        })
     }
     
     override func prefersStatusBarHidden() -> Bool {
@@ -46,6 +62,7 @@ class GameViewController: UIViewController {
         self.scene = GameScene(size: skView.bounds.size)
         self.scene.scaleMode = .AspectFill
         
+        scene.swipeHandler = handleSwipe
         // Present the scene.
         skView.presentScene(scene)
         

@@ -25,6 +25,7 @@
 		2FA80CD51ADB7FDC001906B6 /* Level_2.json in Resources */ = {isa = PBXBuildFile; fileRef = 2FA80CD01ADB7FDC001906B6 /* Level_2.json */; };
 		2FA80CD61ADB7FDC001906B6 /* Level_3.json in Resources */ = {isa = PBXBuildFile; fileRef = 2FA80CD11ADB7FDC001906B6 /* Level_3.json */; };
 		2FA80CD71ADB7FDC001906B6 /* Level_4.json in Resources */ = {isa = PBXBuildFile; fileRef = 2FA80CD21ADB7FDC001906B6 /* Level_4.json */; };
+		2FC4911F1AE5EB79005D767F /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FC4911E1AE5EB79005D767F /* Swap.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,6 +61,7 @@
 		2FA80CD01ADB7FDC001906B6 /* Level_2.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = Level_2.json; sourceTree = "<group>"; };
 		2FA80CD11ADB7FDC001906B6 /* Level_3.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = Level_3.json; sourceTree = "<group>"; };
 		2FA80CD21ADB7FDC001906B6 /* Level_4.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = Level_4.json; sourceTree = "<group>"; };
+		2FC4911E1AE5EB79005D767F /* Swap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +147,7 @@
 		2F883EF31ADA224400C91958 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				2FC4911E1AE5EB79005D767F /* Swap.swift */,
 				2F883EF11ADA1E4200C91958 /* Level.swift */,
 				2F5865F01AD844EC0043D750 /* Cookie.swift */,
 				2F5FD5701ADB4B22009ED954 /* Tile.swift */,
@@ -270,6 +273,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2FC4911F1AE5EB79005D767F /* Swap.swift in Sources */,
 				2F883EF21ADA1E4200C91958 /* Level.swift in Sources */,
 				2F5865CF1AD82F260043D750 /* GameScene.swift in Sources */,
 				2F5865F11AD844EC0043D750 /* Cookie.swift in Sources */,
