@@ -51,6 +51,7 @@ class GameViewController: UIViewController {
         
         self.level = Level(filename: "Level_1")
         scene.level = self.level
+        scene.addTiles()
         
         self.beginGame()
     }

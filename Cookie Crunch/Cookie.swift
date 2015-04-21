@@ -54,7 +54,7 @@ class Cookie: Printable, Hashable {
     }
     
     var hashValue: Int {
-        return row * 10 + column
+        return row * 11 + column
     }
     
     var description: String {
