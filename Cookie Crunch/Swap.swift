@@ -12,7 +12,7 @@ import Foundation
 // a struct is a value type, while a class is a reference type
 // cannot use inheritance with structs and structs pass around copies
 // instead of references to class instances
-struct Swap {
+struct Swap: Printable, Hashable {
     let cookieA: Cookie
     let cookieB: Cookie
     
@@ -21,7 +21,16 @@ struct Swap {
         self.cookieB = cookieB
     }
     
+    var hashValue: Int {
+        return cookieA.hashValue ^ cookieB.hashValue
+    }
+    
     var description: String {
         return "swap \(cookieA) with \(cookieB)"
     }
+}
+
+func ==(lhs: Swap, rhs: Swap) -> Bool {
+    return (lhs.cookieA == rhs.cookieA && lhs.cookieB == rhs.cookieB)
+        || (lhs.cookieA == rhs.cookieB && lhs.cookieB == rhs.cookieA)
 }
