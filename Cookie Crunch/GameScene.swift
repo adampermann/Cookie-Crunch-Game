@@ -20,6 +20,9 @@ class GameScene: SKScene {
     
     var level: Level!
     
+    // Sprite used for the currently selected swap
+    var selectionSprite = SKSpriteNode()
+    
     var swipeFromColumn: Int?
     var swipeFromRow: Int?
     
@@ -75,6 +78,7 @@ class GameScene: SKScene {
             
             // if the touch was acutaly on a cookie
             if let cookie = level.cookieAtColumn(column, row: row) {
+                showSelectionIndicatorForCookie(cookie)
                 swipeFromColumn = column
                 swipeFromRow = row
             }
@@ -110,7 +114,7 @@ class GameScene: SKScene {
             
             if horzDelta != 0 || vertDelta != 0 {
                 trySwapHorizontal(horzDelta, vertical: vertDelta)
-                
+                hideSelectionIndicator()
                 // setting this back to nil will allow game scene logic
                 // to ignore the rest of the swipe motion
                 swipeFromColumn = nil
@@ -120,6 +124,9 @@ class GameScene: SKScene {
     
     override func touchesEnded(touches: Set<NSObject>, withEvent event: UIEvent) {
         // called when user lifts finger from screen
+        if selectionSprite.parent != nil && swipeFromColumn != nil {
+            hideSelectionIndicator()
+        }
         swipeFromColumn = nil
         swipeFromRow = nil
     }
@@ -174,6 +181,32 @@ class GameScene: SKScene {
             self.cookiesLayer.addChild(sprite)
             cookie.sprite = sprite
         }
+    }
+    
+    func showSelectionIndicatorForCookie(cookie: Cookie) {
+        if selectionSprite.parent != nil {
+            selectionSprite.removeFromParent()
+        }
+        
+        // add the selection sprite as a texture rather than replacing the
+        // existing cookie's sprite image
+        if let sprite = cookie.sprite {
+            let texture = SKTexture(imageNamed: cookie.cookieType.highlightedSpriteName)
+            selectionSprite.size = texture.size()
+            
+            // running the set texture only doesn't give the texture the correct 
+            // size but running sprite.runAction does
+            selectionSprite.runAction(SKAction.setTexture(texture))
+            
+            selectionSprite.alpha = 1.0
+            sprite.addChild(selectionSprite)
+        }
+    }
+    
+    func hideSelectionIndicator() {
+        selectionSprite.runAction(SKAction.sequence([
+            SKAction.fadeOutWithDuration(0.4),
+            SKAction.removeFromParent()]))
     }
     
     func addTiles() {
