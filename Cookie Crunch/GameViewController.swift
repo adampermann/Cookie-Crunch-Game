@@ -22,21 +22,27 @@ class GameViewController: UIViewController {
         self.scene.addSpritesForCookies(newCookies)
     }
     
+    // Handle swipe is called any time the GameScene
+    // attemts a swap between cookies
     func handleSwipe(swap: Swap) {
         view.userInteractionEnabled = false
         
-        level.performSwap(swap)
-        
-        // trailing closure syntax for animate swipe
-        scene.animateSwap(swap) {
+        if level.isPossibleSwap(swap) {
+            level.performSwap(swap)
+            
+            // trailing closure syntax for animate swipe
+            scene.animateSwap(swap, completion: handleMatches)
+        } else {
+            // non trailing closure syntax for animation
+            scene.animateInvalidSwap(swap, completion: handleMatches)
+        }
+    }
+    
+    func handleMatches() {
+        let chains = level.removeMatches()
+        scene.animateMatchedCookies(chains) {
             self.view.userInteractionEnabled = true
         }
-        
-//        another way to code it would be
-        
-//        scene.animateSwap(swap, completion: {
-//            self.view.userInteractionEnabled = true
-//        })
     }
     
     override func prefersStatusBarHidden() -> Bool {
@@ -63,6 +69,7 @@ class GameViewController: UIViewController {
         self.scene.scaleMode = .AspectFill
         
         scene.swipeHandler = handleSwipe
+        
         // Present the scene.
         skView.presentScene(scene)
         

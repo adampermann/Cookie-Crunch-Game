@@ -36,9 +36,19 @@ class GameScene: SKScene {
     let TileWidth: CGFloat = 32.0
     let TileHeight: CGFloat = 36.0
     
+    // Layers
     let gameLayer = SKNode()
     let cookiesLayer = SKNode()
     let tilesLayer = SKNode()
+    
+    // Game Sounds
+    // Loading them all once that way they don't
+    // need to be loaded everytime they are needed
+    let swapSound = SKAction.playSoundFileNamed("Chomp.wav", waitForCompletion: false)
+    let invalidSwapSound = SKAction.playSoundFileNamed("Error.wav", waitForCompletion: false)
+    let matchSound = SKAction.playSoundFileNamed("Ka-Ching.wav", waitForCompletion: false)
+    let fallingCookieSound = SKAction.playSoundFileNamed("Scrape.wav", waitForCompletion: false)
+    let addCookieSound = SKAction.playSoundFileNamed("Drip.wav", waitForCompletion: false)
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder) not used in this app")
@@ -111,7 +121,6 @@ class GameScene: SKScene {
                 vertDelta = 1
             }
             
-            
             if horzDelta != 0 || vertDelta != 0 {
                 trySwapHorizontal(horzDelta, vertical: vertDelta)
                 hideSelectionIndicator()
@@ -137,6 +146,9 @@ class GameScene: SKScene {
         touchesEnded(touches, withEvent: event)
     }
     
+    
+    // attempts a swap, only succeds if in the valid grid.  
+    // if successful creates a new swap object.
     func trySwapHorizontal(horzDelta: Int, vertical vertDelta: Int) {
         let toColumn = swipeFromColumn! + horzDelta
         let toRow = swipeFromRow! + vertDelta
@@ -172,6 +184,49 @@ class GameScene: SKScene {
         let moveB = SKAction.moveTo(spriteA.position, duration: Duration)
         moveB.timingMode = .EaseOut
         spriteB.runAction(moveB, completion: completion)
+        
+        runAction(swapSound)
+    }
+    
+    func animateInvalidSwap(swap: Swap, completion: () -> ()) {
+        let spriteA = swap.cookieA.sprite!
+        let spriteB = swap.cookieB.sprite!
+        
+        spriteA.zPosition = 100
+        spriteB.zPosition = 90
+        
+        let Duration: NSTimeInterval = 0.2
+        
+        let moveA = SKAction.moveTo(spriteB.position, duration: Duration)
+        moveA.timingMode = .EaseOut
+        
+        let moveB = SKAction.moveTo(spriteA.position, duration: Duration)
+        moveB.timingMode = .EaseOut
+        
+        spriteA.runAction(SKAction.sequence([moveA, moveB]), completion: completion)
+        spriteB.runAction(SKAction.sequence([moveB, moveA]))
+        
+        runAction(invalidSwapSound)
+    }
+    
+    func animateMatchedCookies(chains: Set<Chain>, completion: () -> ()) {
+        for chain in chains {
+            for cookie in chain.cookies {
+                if let sprite = cookie.sprite {
+                    // check for key removing because a chain could be part of 
+                    // 2 chains (ie vertical and horizontal) and only want it to run 
+                    // once for both
+                    if sprite.actionForKey("removing") == nil {
+                        let scaleAction = SKAction.scaleTo(0.1, duration: 0.3)
+                        scaleAction.timingMode = .EaseOut
+                        sprite.runAction(SKAction.sequence([scaleAction, SKAction.removeFromParent()]),
+                            withKey:"removing")
+                        runAction(matchSound)
+                    }
+                }
+            }
+        }
+        runAction(SKAction.waitForDuration(0.3), completion: completion)
     }
     
     func addSpritesForCookies(cookies: Set<Cookie>) {

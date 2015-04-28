@@ -12,6 +12,7 @@ let NumColumns: Int = 9
 let NumRows = 9
 
 class Level {
+    
     private var cookies = Array2D<Cookie>(columns: NumColumns, rows: NumRows)
     private var tiles = Array2D<Tile>(columns: NumColumns, rows: NumRows)
     private var possibleSwaps = Set<Swap>()
@@ -50,6 +51,8 @@ class Level {
         return cookies[column, row]
     }
     
+    // creates and shuffles the initial Set of cookies
+    // also detects all possible swaps before returning the Set
     func shuffle() -> Set<Cookie> {
         var set: Set<Cookie>
         do {
@@ -59,6 +62,44 @@ class Level {
         } while possibleSwaps.count == 0
         
         return set
+    }
+    
+    // Swaps the two cookies contained in the Swap object
+    func performSwap(swap: Swap) {
+        let columnA = swap.cookieA.column
+        let rowA = swap.cookieA.row
+        let columnB = swap.cookieB.column
+        let rowB = swap.cookieB.row
+        
+        cookies[columnA, rowA] = swap.cookieB
+        swap.cookieB.column = columnA
+        swap.cookieB.row = rowA
+        
+        cookies[columnB, rowB] = swap.cookieA
+        swap.cookieA.column = columnB
+        swap.cookieA.row = rowB
+    }
+    
+    func isPossibleSwap(swap: Swap) -> Bool {
+        return possibleSwaps.contains(swap)
+    }
+    
+    func removeMatches() -> Set<Chain> {
+        let horizontalChains = detectHorizontalMatches()
+        let verticalChains = detectVerticalMatches()
+        
+        removeCookies(horizontalChains)
+        removeCookies(verticalChains)
+        
+        return horizontalChains.union(verticalChains)
+    }
+    
+    private func removeCookies(chains: Set<Chain>) {
+        for chain in chains {
+            for cookie in chain.cookies {
+                cookies[cookie.column, cookie.row] = nil
+            }
+        }
     }
     
     // creates the initial Set of cookies
@@ -74,13 +115,14 @@ class Level {
                 if tiles[column, row] != nil {
                     
                     var cookieType: CookieType
+                    
                     // in psuedo code: keep generating a new cookie type if
                     // it matches 2 cookies to the left of it or 2 below it
                     do {
                         cookieType = CookieType.random()
                     } while (column >= 2 &&
                         cookies[column - 1, row]?.cookieType == cookieType &&
-                        cookies[column - 1, row]?.cookieType == cookieType)
+                        cookies[column - 2, row]?.cookieType == cookieType)
                         || (row >= 2 &&
                             cookies[column, row - 1]?.cookieType == cookieType &&
                             cookies[column, row - 2]?.cookieType == cookieType)
@@ -95,6 +137,7 @@ class Level {
         return set
     }
     
+    // detects all possible swaps after the level has been shuffled
     private func detectPossibleSwaps() {
         var set = Set<Swap>()
         
@@ -152,6 +195,71 @@ class Level {
         possibleSwaps = set
     }
     
+    private func detectVerticalMatches() -> Set<Chain> {
+        var set = Set<Chain>()
+        
+        for column in 0..<NumColumns {
+            
+            for var row = 0; row < NumRows - 2; {
+                
+                if let cookie = cookies[column, row] {
+                    let matchType = cookie.cookieType
+                    
+                    if cookies[column, row + 1]?.cookieType == matchType
+                        && cookies[column, row + 2]?.cookieType == matchType {
+                            let chain = Chain(chainType: .Vertical)
+                            do {
+                            
+                                chain.addCookie(cookies[column, row]!)
+                                ++row
+    
+                            } while row < NumRows && cookies[column, row]?.cookieType == matchType
+                            
+                            set.insert(chain)
+                            continue
+                    }
+                }
+                
+                ++row
+            }
+        }
+        return set
+    }
+    
+    private func detectHorizontalMatches() -> Set<Chain> {
+        var set = Set<Chain>()
+        
+        for row in 0..<NumRows {
+            // don't have to check the last 2 rows because
+            // we are finding chains from left to right
+            for var column = 0; column < NumColumns - 2; {
+                
+                // skips over any empty cookie tiles
+                if let cookie = cookies[column, row] {
+                    let matchType = cookie.cookieType
+                    
+                    if cookies[column + 1, row]?.cookieType == matchType
+                        && cookies[column + 2, row]?.cookieType == matchType {
+                            let chain = Chain(chainType: .Horizontal)
+                            do {
+                                chain.addCookie(cookies[column, row]!)
+                                ++column
+                            } while column < NumColumns && cookies[column, row]?.cookieType == matchType
+                            
+                            set.insert(chain)
+                            continue
+                    }
+                }
+                
+                ++column
+            }
+        }
+        
+        return set
+    }
+    
+    // returns true if there is a horizontal or vertical
+    // chanin at the column and row.  used by detect possible swaps
     private func hasChainAtColumn(column: Int, row: Int) -> Bool {
         let cookieType = cookies[column, row]!.cookieType
         
@@ -170,21 +278,5 @@ class Level {
     
         // found a vertical chain through the rows
         return vertLength >= 3
-    }
-    
-    // Swaps the two cookies contained in the Swap object
-    func performSwap(swap: Swap) {
-        let columnA = swap.cookieA.column
-        let rowA = swap.cookieA.row
-        let columnB = swap.cookieB.column
-        let rowB = swap.cookieB.row
-        
-        cookies[columnA, rowA] = swap.cookieB
-        swap.cookieB.column = columnA
-        swap.cookieB.row = rowA
-        
-        cookies[columnB, rowB] = swap.cookieA
-        swap.cookieA.column = columnB
-        swap.cookieA.row = rowB
     }
 }
