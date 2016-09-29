@@ -76,7 +76,7 @@ class GameScene: SKScene {
         self.swipeFromRow = nil
     }
     
-    override func touchesBegan(touches: Set<NSObject>, withEvent event: UIEvent) {
+    override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
         let touch = touches.first as! UITouch
         let location = touch.locationInNode(cookiesLayer)
         
@@ -95,7 +95,7 @@ class GameScene: SKScene {
         }
     }
     
-    override func touchesMoved(touches: Set<NSObject>, withEvent event: UIEvent) {
+    override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?) {
         // swipe form column is nil if touches began 
         // happened in an invalid area (ie. not cookie layer) 
         // or the cookies have already been swaped
@@ -131,7 +131,7 @@ class GameScene: SKScene {
         }
     }
     
-    override func touchesEnded(touches: Set<NSObject>, withEvent event: UIEvent) {
+    override func touchesEnded(touches: Set<UITouch>, withEvent event: UIEvent?) {
         // called when user lifts finger from screen
         if selectionSprite.parent != nil && swipeFromColumn != nil {
             hideSelectionIndicator()
@@ -140,7 +140,7 @@ class GameScene: SKScene {
         swipeFromRow = nil
     }
     
-    override func touchesCancelled(touches: Set<NSObject>!, withEvent event: UIEvent!) {
+    override func touchesCancelled(touches: Set<UITouch>?, withEvent event: UIEvent?) {
         // called when iOS cancels touch / swipe for
         // something such as a phone call
         touchesEnded(touches, withEvent: event)
@@ -163,11 +163,15 @@ class GameScene: SKScene {
                     let swap = Swap(cookieA: fromCookie, cookieB: toCookie)
                     handler(swap)
                 }
-                println("****** swapping \(fromCookie) with \(toCookie)")
+                print("****** swapping \(fromCookie) with \(toCookie)")
             }
         }
     }
     
+    /***************************************************
+    *   Animation methods.
+    *
+    ****************************************************/
     func animateSwap(swap: Swap, completion: () -> ()) {
         let spriteA = swap.cookieA.sprite!
         let spriteB = swap.cookieB.sprite!
@@ -229,6 +233,67 @@ class GameScene: SKScene {
         runAction(SKAction.waitForDuration(0.3), completion: completion)
     }
     
+    func animateFallingCookies(columns: [[Cookie]], completion: () -> ()) {
+        var longestDuration: NSTimeInterval = 0
+        for array in columns {
+            for (idx, cookie) in array.enumerate() {
+                let newPosition = pointForColumn(cookie.column, row: cookie.row)
+                
+                // The greater the value of index the longer the delay.
+                let delay = 0.05 + 0.15*NSTimeInterval(idx)
+                
+                // cookie will have sprite if it is being removed
+                let sprite = cookie.sprite!
+                let duration = NSTimeInterval(((sprite.position.y - newPosition.y) / TileHeight) * 0.1)
+                longestDuration = max(longestDuration, duration + delay)
+                
+                let moveAction = SKAction.moveTo(newPosition, duration: longestDuration)
+                moveAction.timingMode = .EaseOut
+                
+                // The action consists of a delay, a movement and a sound effect.
+                sprite.runAction(SKAction.sequence([
+                    SKAction.waitForDuration(delay),
+                    SKAction.group([moveAction, fallingCookieSound])]))
+            }
+        }
+        // Wait until all the cookies have fallen in animation and then run the completion block
+        runAction(SKAction.waitForDuration(longestDuration), completion: completion)
+    }
+    
+    func animateNewCookies(columns: [[Cookie]], completion: () -> ()) {
+        var longestDuration: NSTimeInterval = 0
+        
+        for array in columns {
+            
+            let startRow = array[0].row + 1
+            for (idx, cookie) in array.enumerate() {
+                // put the sprite on top
+                let sprite = SKSpriteNode(imageNamed: cookie.cookieType.spriteName)
+                sprite.position = pointForColumn(cookie.column, row: startRow)
+                cookiesLayer.addChild(sprite)
+                cookie.sprite = sprite
+                
+                let delay = 0.1 + 0.2 * NSTimeInterval(array.count - idx - 1)
+                let duration = NSTimeInterval(startRow - cookie.row) * 0.1
+                longestDuration = max(longestDuration, duration + delay)
+                
+                // then move it to its proper spot by "Dropping" it in
+                let newPosition = pointForColumn(cookie.column, row: cookie.row)
+                let moveAction = SKAction.moveTo(newPosition, duration: longestDuration)
+                moveAction.timingMode = .EaseOut
+                sprite.alpha = 0
+                sprite.runAction(SKAction.sequence([
+                    SKAction.waitForDuration(delay),
+                    SKAction.group([
+                        SKAction.fadeInWithDuration(0.05),
+                        moveAction,
+                        addCookieSound])
+                ]))
+            }
+        }
+        runAction(SKAction.waitForDuration(longestDuration), completion: completion)
+    }
+    
     func addSpritesForCookies(cookies: Set<Cookie>) {
         for cookie in cookies {
             let sprite = SKSpriteNode(imageNamed: cookie.cookieType.spriteName)
@@ -237,6 +302,7 @@ class GameScene: SKScene {
             cookie.sprite = sprite
         }
     }
+    
     
     func showSelectionIndicatorForCookie(cookie: Cookie) {
         if selectionSprite.parent != nil {
@@ -275,6 +341,11 @@ class GameScene: SKScene {
             }
         }
     }
+    
+    /***************************************************
+    *   End Animation methods.
+    *
+    ****************************************************/
     
     // converts a column and row to a CGPoint
     func pointForColumn(column: Int, row: Int) -> CGPoint {

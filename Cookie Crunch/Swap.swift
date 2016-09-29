@@ -12,7 +12,7 @@ import Foundation
 // a struct is a value type, while a class is a reference type
 // cannot use inheritance with structs and structs pass around copies
 // instead of references to class instances
-struct Swap: Printable, Hashable {
+struct Swap: CustomStringConvertible, Hashable {
     let cookieA: Cookie
     let cookieB: Cookie
     

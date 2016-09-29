@@ -8,7 +8,7 @@
 
 import SpriteKit
 
-enum CookieType: Int, Printable {
+enum CookieType: Int, CustomStringConvertible {
     case Unknown = 0, Crossaint, Cupcake, Danish, Donut, Macaroon, SugarCookie
     
     var spriteName: String {
@@ -41,7 +41,7 @@ func ==(lhs: Cookie, rhs: Cookie) -> Bool {
     return lhs.column == rhs.column && lhs.row == rhs.row
 }
 
-class Cookie: Printable, Hashable {
+class Cookie: CustomStringConvertible, Hashable {
     var row: Int
     var column: Int
     let cookieType: CookieType

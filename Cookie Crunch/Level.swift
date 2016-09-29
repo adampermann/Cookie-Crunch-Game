@@ -16,16 +16,21 @@ class Level {
     private var cookies = Array2D<Cookie>(columns: NumColumns, rows: NumRows)
     private var tiles = Array2D<Tile>(columns: NumColumns, rows: NumRows)
     private var possibleSwaps = Set<Swap>()
+    var targetScore = 0
+    var maximumMoves = 0
     
     init(filename: String) {
         if let dictionary = Dictionary<String, AnyObject>.loadJSONFromBundle(filename) {
             
             if let tilesArray: AnyObject = dictionary["tiles"] {
                 
-                for (row, rowArray) in enumerate(tilesArray as! [[Int]]) {
+                maximumMoves = dictionary["moves"] as! Int
+                targetScore = dictionary["targetScore"] as! Int
+                
+                for (row, rowArray) in (tilesArray as! [[Int]]).enumerate() {
                     let tileRow = NumRows - row - 1
                     
-                    for (column, value) in enumerate(rowArray) {
+                    for (column, value) in rowArray.enumerate() {
                         if value == 1 {
                             tiles[column, tileRow] = Tile()
                         }
@@ -55,10 +60,10 @@ class Level {
     // also detects all possible swaps before returning the Set
     func shuffle() -> Set<Cookie> {
         var set: Set<Cookie>
-        do {
+        repeat {
             set = createInitialCookies()
             detectPossibleSwaps()
-            println("possible swaps: \(possibleSwaps)")
+            print("possible swaps: \(possibleSwaps)")
         } while possibleSwaps.count == 0
         
         return set
@@ -84,61 +89,21 @@ class Level {
         return possibleSwaps.contains(swap)
     }
     
+    // Removes all matches (Chains) after a swap is completed
     func removeMatches() -> Set<Chain> {
         let horizontalChains = detectHorizontalMatches()
         let verticalChains = detectVerticalMatches()
         
         removeCookies(horizontalChains)
         removeCookies(verticalChains)
-        
+        calculateScores(horizontalChains)
+        calculateScores(verticalChains)
         return horizontalChains.union(verticalChains)
     }
     
-    private func removeCookies(chains: Set<Chain>) {
-        for chain in chains {
-            for cookie in chain.cookies {
-                cookies[cookie.column, cookie.row] = nil
-            }
-        }
-    }
-    
-    // creates the initial Set of cookies
-    // Rule for creating initial cookie types.  At the
-    // beginning of the game or end of turn, no matches are allowed on the
-    // screen (ie. if there is a match should be taken care of)
-    private func createInitialCookies() -> Set<Cookie> {
-        var set = Set<Cookie>()
-        
-        for row in 0..<NumRows {
-            for column in 0..<NumColumns {
-                
-                if tiles[column, row] != nil {
-                    
-                    var cookieType: CookieType
-                    
-                    // in psuedo code: keep generating a new cookie type if
-                    // it matches 2 cookies to the left of it or 2 below it
-                    do {
-                        cookieType = CookieType.random()
-                    } while (column >= 2 &&
-                        cookies[column - 1, row]?.cookieType == cookieType &&
-                        cookies[column - 2, row]?.cookieType == cookieType)
-                        || (row >= 2 &&
-                            cookies[column, row - 1]?.cookieType == cookieType &&
-                            cookies[column, row - 2]?.cookieType == cookieType)
-                    
-                    let cookie = Cookie(column: column, row: row, cookieType: cookieType)
-                    cookies[column, row] = cookie
-                    
-                    set.insert(cookie)
-                }
-            }
-        }
-        return set
-    }
-    
     // detects all possible swaps after the level has been shuffled
-    private func detectPossibleSwaps() {
+    // and before the player begins the next turn
+    func detectPossibleSwaps() {
         var set = Set<Swap>()
         
         for row in 0..<NumRows {
@@ -176,10 +141,10 @@ class Level {
                             cookies[column, row] = other
                             cookies[column, row + 1] = cookie
                             
-                            // are either cookies part of a chain? 
+                            // are either cookies part of a chain?
                             if hasChainAtColumn(column, row: row) ||
-                               hasChainAtColumn(column, row: row + 1) {
-                                  set.insert(Swap(cookieA: cookie, cookieB: other))
+                                hasChainAtColumn(column, row: row + 1) {
+                                    set.insert(Swap(cookieA: cookie, cookieB: other))
                             }
                             
                             // put both cookies back
@@ -195,6 +160,114 @@ class Level {
         possibleSwaps = set
     }
     
+    // Fills all empty holes in game grid
+    // left from removing matching chains
+    func fillHoles() -> [[Cookie]] {
+        var columns = [[Cookie]]()
+        
+        for column in 0..<NumColumns {
+            var array = [Cookie]()
+            for row in 0..<NumRows {
+                if tiles[column, row] != nil && cookies[column, row] == nil {
+                    
+                    // looks up the rows until it finds a cookie.
+                    // if it finds a cookie above an empty grid square it
+                    // moves the cookie down to the current row.
+                    for lookup in (row + 1)..<NumRows {
+                        if let cookie = cookies[column, lookup] {
+                            cookies[column, lookup] = nil
+                            cookies[column, row] = cookie
+                            cookie.row = row
+                            array.append(cookie)
+                            
+                            break
+                        }
+                    }
+                }
+            }
+            if !array.isEmpty {
+                // the columns array works from the bottom up
+                // for purpose of animating the dropping cookies
+                // the higher the drop the longer the animation.
+                columns.append(array)
+            }
+        }
+        
+        return columns
+    }
+    
+    func topOffCookies() -> [[Cookie]] {
+        var columns = [[Cookie]]()
+        var cookieType: CookieType = .Unknown
+        
+        for column in 0..<NumColumns {
+            var array = [Cookie]()
+            // start from the top down so can fill in appropriately
+            for var row = NumRows - 1; row >= 0 && cookies[column, row] == nil; --row {
+                if tiles[column, row] != nil {
+                    var newCookieType: CookieType
+                    repeat {
+                        newCookieType = CookieType.random()
+                    } while newCookieType == cookieType
+                    cookieType = newCookieType
+                    
+                    let cookie = Cookie(column: column, row: row, cookieType: cookieType)
+                    cookies[column, row] = cookie
+                    array.append(cookie)
+                }
+            }
+            if !array.isEmpty {
+                columns.append(array)
+            }
+        }
+        return columns
+    }
+    
+    // Removes the cookies from the 2D array after
+    // any possible chains have been identified.
+    private func removeCookies(chains: Set<Chain>) {
+        for chain in chains {
+            for cookie in chain.cookies {
+                cookies[cookie.column, cookie.row] = nil
+            }
+        }
+    }
+    
+    // creates the initial Set of cookies
+    // Rule for creating initial cookie types.  At the
+    // beginning of the game or end of turn, no matches are allowed on the
+    // screen (ie. if there is a match should be taken care of)
+    private func createInitialCookies() -> Set<Cookie> {
+        var set = Set<Cookie>()
+        
+        for row in 0..<NumRows {
+            for column in 0..<NumColumns {
+                
+                if tiles[column, row] != nil {
+                    
+                    var cookieType: CookieType
+                    
+                    // in psuedo code: keep generating a new cookie type if
+                    // it matches 2 cookies to the left of it or 2 below it
+                    repeat {
+                        cookieType = CookieType.random()
+                    } while (column >= 2 &&
+                        cookies[column - 1, row]?.cookieType == cookieType &&
+                        cookies[column - 2, row]?.cookieType == cookieType)
+                        || (row >= 2 &&
+                            cookies[column, row - 1]?.cookieType == cookieType &&
+                            cookies[column, row - 2]?.cookieType == cookieType)
+                    
+                    let cookie = Cookie(column: column, row: row, cookieType: cookieType)
+                    cookies[column, row] = cookie
+                    
+                    set.insert(cookie)
+                }
+            }
+        }
+        return set
+    }
+    
     private func detectVerticalMatches() -> Set<Chain> {
         var set = Set<Chain>()
         
@@ -208,7 +281,7 @@ class Level {
                     if cookies[column, row + 1]?.cookieType == matchType
                         && cookies[column, row + 2]?.cookieType == matchType {
                             let chain = Chain(chainType: .Vertical)
-                            do {
+                            repeat {
                             
                                 chain.addCookie(cookies[column, row]!)
                                 ++row
@@ -241,7 +314,7 @@ class Level {
                     if cookies[column + 1, row]?.cookieType == matchType
                         && cookies[column + 2, row]?.cookieType == matchType {
                             let chain = Chain(chainType: .Horizontal)
-                            do {
+                            repeat {
                                 chain.addCookie(cookies[column, row]!)
                                 ++column
                             } while column < NumColumns && cookies[column, row]?.cookieType == matchType
@@ -256,6 +329,15 @@ class Level {
         }
         
         return set
+    }
+    
+    // scoring rules for chains
+    // A 3-cookie chain is worth 60 points.
+    // Each additional cookie in the chain increases the chain’s value by 60 points.
+    private func calculateScores(chains: Set<Chain>) {
+        for chain in chains {
+            chain.score = 60 * (chain.length - 2)
+        }
     }
     
     // returns true if there is a horizontal or vertical

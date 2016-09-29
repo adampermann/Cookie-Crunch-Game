@@ -12,13 +12,17 @@ func ==(lhs: Chain, rhs: Chain) -> Bool {
     return lhs.cookies == rhs.cookies
 }
 
-class Chain: Printable, Hashable {
+// scoring rules for chains
+// A 3-cookie chain is worth 60 points.
+// Each additional cookie in the chain increases the chain’s value by 60 points.
+class Chain: CustomStringConvertible, Hashable {
     // using an array rather than a Set
     // so it is easier to detect L and T shaped chains if they
     // happen to exist
-    var cookies = [Cookie]()
     
-    enum ChainType: Printable {
+    var cookies = [Cookie]()
+    var score = 0
+    enum ChainType: CustomStringConvertible {
         
         // TODO add L and T shape chain types
         case Horizontal
@@ -60,6 +64,6 @@ class Chain: Printable, Hashable {
     
     var hashValue: Int {
         // performs an exclusive-or on the hash values of all the cookies in the chain
-        return reduce(cookies, 0) { $0.hashValue ^ $1.hashValue }
+        return cookies.reduce(0) { $0.hashValue ^ $1.hashValue }
     }
 }
